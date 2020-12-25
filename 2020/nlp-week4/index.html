@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.wilsonovo.com","root":"/","scheme":"Gemini","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":true,"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"path":"search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":true,"preload":false}};
+  </script>
+
+  <meta name="description" content="这是NLP课程的最后一天，本周会学习RNN（循环神经网络），相比一般的神经网络来说，他能够处理序列变化的数据。比如某个单词的意思会因为上文提到的内容不同而有不同的含义，RNN就能够很好地解决这类问题。这部分尝试解决上一节中否定词带来的判断错误，同时补充LSTM相关的内容。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sentiment Analysis Part4">
+<meta property="og:url" content="https://www.wilsonovo.com/2020/nlp-week4/">
+<meta property="og:site_name" content="Wilson&#39;s Blog">
+<meta property="og:description" content="这是NLP课程的最后一天，本周会学习RNN（循环神经网络），相比一般的神经网络来说，他能够处理序列变化的数据。比如某个单词的意思会因为上文提到的内容不同而有不同的含义，RNN就能够很好地解决这类问题。这部分尝试解决上一节中否定词带来的判断错误，同时补充LSTM相关的内容。">
+<meta property="og:locale">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week4/img0.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week4/img1.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week4/img2.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week4/img3.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week4/img4.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week4/img5.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week4/img6.jpg">
+<meta property="article:published_time" content="2020-09-16T04:42:30.000Z">
+<meta property="article:modified_time" content="2020-09-20T00:20:48.967Z">
+<meta property="article:author" content="Wilson">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="NLP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.wilsonovo.com/2020/nlp-week4/img0.jpg">
+
+<link rel="canonical" href="https://www.wilsonovo.com/2020/nlp-week4/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+
+  <title>Sentiment Analysis Part4 | Wilson's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">Wilson's Blog</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Never stop</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">11</span></a>
+
+  </li>
+        <li class="menu-item menu-item-schedule">
+
+    <a href="/schedule/" rel="section"><i class="fa fa-calendar fa-fw"></i>Schedule</a>
+
+  </li>
+        <li class="menu-item menu-item-gallery">
+
+    <a href="https://www.nsrain.com/" rel="noopener" target="_blank"><i class="fa fa-photo-video fa-fw"></i>Gallery</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#RNN%E7%9A%84%E7%A7%8D%E7%B1%BB"><span class="nav-number">1.</span> <span class="nav-text">RNN的种类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#RNN%E5%8D%95%E5%85%83%E7%BB%93%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">RNN单元结构</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%95%BF%E6%9C%9F%E4%BE%9D%E8%B5%96%EF%BC%88Long-Term-Dependencies%EF%BC%89%E9%97%AE%E9%A2%98"><span class="nav-number">2.1.</span> <span class="nav-text">长期依赖（Long-Term Dependencies）问题</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#LSTM"><span class="nav-number">3.</span> <span class="nav-text">LSTM</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%81%97%E5%BF%98%E9%97%A8%EF%BC%88forget-gate%EF%BC%89"><span class="nav-number">3.1.</span> <span class="nav-text">遗忘门（forget gate）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E9%97%A8%EF%BC%88update-gate%EF%BC%89"><span class="nav-number">3.2.</span> <span class="nav-text">输入门（update gate）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E9%97%A8%EF%BC%88output-gate%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">输出门（output gate）</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%9E%84%E5%BB%BALSTM"><span class="nav-number">4.</span> <span class="nav-text">构建LSTM</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Word-Embeddings-amp-One-Hot"><span class="nav-number">4.1.</span> <span class="nav-text">Word Embeddings &amp; One Hot</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Embedding-Layer"><span class="nav-number">4.2.</span> <span class="nav-text">Embedding Layer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Build-the-Model"><span class="nav-number">4.3.</span> <span class="nav-text">Build the Model</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Save-and-Load-Models"><span class="nav-number">5.</span> <span class="nav-text">Save and Load Models</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Wilson"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">Wilson</p>
+  <div class="site-description" itemprop="description">Software developer, undergraduate, CS major.</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wilsongibbs" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wilsongibbs" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/WilsongibbsZ" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;WilsongibbsZ" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
+    <link itemprop="mainEntityOfPage" href="https://www.wilsonovo.com/2020/nlp-week4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="Wilson">
+      <meta itemprop="description" content="Software developer, undergraduate, CS major.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wilson's Blog">
+    </span>
+
+    
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Sentiment Analysis Part4
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-09-16 12:42:30" itemprop="dateCreated datePublished" datetime="2020-09-16T12:42:30+08:00">2020-09-16</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-09-20 08:20:48" itemprop="dateModified" datetime="2020-09-20T08:20:48+08:00">2020-09-20</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/coding/" itemprop="url" rel="index"><span itemprop="name">coding</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>这是NLP课程的最后一天，本周会学习RNN（循环神经网络），相比一般的神经网络来说，他能够处理序列变化的数据。比如某个单词的意思会因为上文提到的内容不同而有不同的含义，RNN就能够很好地解决这类问题。这部分尝试解决上一节中否定词带来的判断错误，同时补充LSTM相关的内容。</p>
+<p><img src="/2020/nlp-week4/img0.jpg" alt="img0"></p>
+<a id="more"></a>
+
+<h1 id="RNN的种类"><a href="#RNN的种类" class="headerlink" title="RNN的种类"></a>RNN的种类</h1><p>RNN有很多不同的形式，但都是由多个普通神经网络串联起来的。比如N:N, N:1, 1:N, 1:1等等，下面是不同RNN的结构和应用场景。<img src="/2020/nlp-week4/img1.jpg" alt="img1"></p>
+<p>可以发现，Sentiment Analysis就可以采用N:1这样的RNN，每个X就是一个词，最终只有一个输出。</p>
+<h1 id="RNN单元结构"><a href="#RNN单元结构" class="headerlink" title="RNN单元结构"></a>RNN单元结构</h1><p><img src="/2020/nlp-week4/img2.jpg" alt="img2"></p>
+<h2 id="长期依赖（Long-Term-Dependencies）问题"><a href="#长期依赖（Long-Term-Dependencies）问题" class="headerlink" title="长期依赖（Long-Term Dependencies）问题"></a>长期依赖（Long-Term Dependencies）问题</h2><p>RNN 的关键点之一就是他们可以用来连接先前的信息到当前的任务上。例如，有一个语言模型基于先前的词来预测下一个词。如果我们试着预测 “the clouds are in the sky” 最后的词，我们并不需要任何其他的上下文 —— 因此下一个词很显然就应该是 sky。在这样的场景中，相关的信息和预测的词位置之间的间隔是非常小的，RNN 可以学会使用先前的信息。但如果是很长的信息（超过20词），在多次矩阵相乘运算以后，很多数据都接近于0 了。就相当于一段话前半部分没有起作用，只有最后20个词对预测有影响。为了解决这个问题，可以使用LSTM。</p>
+<h1 id="LSTM"><a href="#LSTM" class="headerlink" title="LSTM"></a>LSTM</h1><p>长短期记忆（Long short-term memory, LSTM）是一种特殊的RNN，主要是为了解决长序列训练过程中的梯度消失和梯度爆炸问题。简单来说，就是相比普通的RNN，LSTM能够在更长的序列中有更好的表现。所有的RNN都具有一种重复神经网络模块的链式形式，在标准RNN中，这个重复的结构模块只有一个非常简单的结构，例如一个tanh层。</p>
+<p>LSTM 同样是这样的重复模块，但这些模块拥有不同于普通RNN的结构。和普通RNN的单一神经网络层相比，LSTM有四个，以一种非常特殊的方式进行交互。</p>
+<p><img src="/2020/nlp-week4/img3.jpg" alt="img3"></p>
+<p>相比RNN只有一个传递状态<code>a^t</code>，LSTM有两个传输状态，一个<code>c^t</code>（cell state），和一个<code>a^t</code>（hidden state）。其中对于传递下去的<code>c^t</code>改变得很慢，通常输出的<code>c^t</code>是上一个状态传过来的 <code>c^&lt;t-1&gt;</code>加上一些数值，而 <code>a^t</code> 则在不同节点下往往会有很大的区别。</p>
+<p><img src="/2020/nlp-week4/img4.jpg" alt="img4"></p>
+<h2 id="遗忘门（forget-gate）"><a href="#遗忘门（forget-gate）" class="headerlink" title="遗忘门（forget gate）"></a>遗忘门（forget gate）</h2><p>LSTM的第一步是决定我们会从细胞状态中丢弃什么信息。这个决定通过一个称为忘记门层完成。该门会读取<code>a^&lt;t-1&gt;</code>和<code>X^t</code>，输出一个在 0到 1之间的数值给每个在细胞状态<code>c^&lt;t-1&gt;</code>中的数字。1 表示“完全保留”，0 表示“完全舍弃”。</p>
+<p>其中<code>a^&lt;t-1&gt;</code>表示的是上一个cell的输出，<code>X^t</code>表示的是当前细胞的输入。<code>σ</code>表示sigmod函数。</p>
+<h2 id="输入门（update-gate）"><a href="#输入门（update-gate）" class="headerlink" title="输入门（update gate）"></a>输入门（update gate）</h2><p>下一步是决定让多少新的信息加入到 cell 状态 中来。实现这个需要包括两个 步骤：首先，一个叫做<code>update gate</code>的 sigmoid 层决定哪些信息需要更新，一个 <code>tanh </code>层生成一个向量，也就是备选的用来更新的内容，<code>c^t </code>。接下来更新旧细胞状态，把旧状态与<code>f</code>相乘，丢弃掉我们确定需要丢弃的信息。接着加上<code>u*c~t</code>，这就是新的候选值，根据我们决定更新每个状态的程度进行变化。</p>
+<h2 id="输出门（output-gate）"><a href="#输出门（output-gate）" class="headerlink" title="输出门（output gate）"></a>输出门（output gate）</h2><p>最终，我们需要确定输出什么值。这个输出将会基于我们的细胞状态，但是也是一个过滤后的版本。首先，运行一个 sigmoid 层来确定细胞状态的哪个部分将输出出去。接着，把细胞状态通过 tanh 进行处理（得到一个在 -1 到 1 之间的值）并将它和 sigmoid 门的输出相乘，最终我们仅仅会输出我们确定输出的那部分。</p>
+<h1 id="构建LSTM"><a href="#构建LSTM" class="headerlink" title="构建LSTM"></a>构建LSTM</h1><p>这次依然用上一节的实例，输入句子预测Emoji。先导入所需的包：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># import </span></span><br><span class="line"><span class="keyword">import</span> numpy <span class="keyword">as</span> np</span><br><span class="line"><span class="keyword">import</span> nlp_proj_utils <span class="keyword">as</span> utils</span><br><span class="line"><span class="keyword">from</span> tensorflow.keras.models <span class="keyword">import</span> Model  </span><br><span class="line"><span class="keyword">from</span> tensorflow.keras.layers <span class="keyword">import</span> Dense, Input, Dropout, LSTM, Activation, Embedding</span><br><span class="line"><span class="keyword">from</span> tensorflow.keras.preprocessing <span class="keyword">import</span> sequence</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line">%matplotlib inline</span><br><span class="line">%config InlineBackend.figure_format=<span class="string">&#x27;retina&#x27;</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">np.random.seed(<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line">train_x, test_x, train_y, test_y = utils.load_emoji()</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Word-Embeddings-amp-One-Hot"><a href="#Word-Embeddings-amp-One-Hot" class="headerlink" title="Word Embeddings &amp; One Hot"></a>Word Embeddings &amp; One Hot</h2><p>在上一节中，对于每一个训练语句，我们直接用python分割了每个单词然后把每个词的Embedding向量求平均以算出每个句子的向量。但这样做就会导致单词顺序信息丢失，并且计算效率很低。所以这次用tensorflow来进行快速计算，在Keras中，我们必须要以矩阵的形式传入embedding layer，每一行依次是单词表中的每一个词，长度为向量的维度。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">word_to_index, word_to_vec_map = utils.load_glove_vecs()</span><br><span class="line"></span><br><span class="line"><span class="comment"># Convert word to the index in vocabulary</span></span><br><span class="line">utils.sentences_to_indices(</span><br><span class="line">    np.array([<span class="string">&quot;i like it&quot;</span>, <span class="string">&quot;i hate it&quot;</span>]),  <span class="comment"># array of test sentences</span></span><br><span class="line">    word_to_index, </span><br><span class="line">    max_len = <span class="number">5</span>)</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># array([[185457., 222471., 193716.,      0.,      0.],[185457., 174339., 193716.,      0.,      0.]])</span></span><br></pre></td></tr></table></figure>
+
+<p>这里规定句子最大长度为5，可以看到每个句子都被转化成了包含对于词index的数组。</p>
+<p>接下来找到所有句子中长度最大的一个，然后分别转化训练和测试数据：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">maxlen = max([len(x.split()) <span class="keyword">for</span> x <span class="keyword">in</span> train_x])</span><br><span class="line">print(<span class="string">&#x27;max number of words in a sentence:&#x27;</span>, maxlen)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># max number of words in a sentence: 10</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Convert training/testing features into index list</span></span><br><span class="line">train_x = utils.sentences_to_indices(train_x, word_to_index, maxlen)</span><br><span class="line">test_x = utils.sentences_to_indices(test_x, word_to_index, maxlen)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Convert training/testing labels into one hot array</span></span><br><span class="line">train_y = utils.convert_to_one_hot(train_y, C = <span class="number">5</span>)</span><br><span class="line">test_y = utils.convert_to_one_hot(test_y, C = <span class="number">5</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Check to make sure the shape looks good</span></span><br><span class="line"><span class="keyword">assert</span> train_x.shape == (<span class="number">132</span>, maxlen)</span><br><span class="line"><span class="keyword">assert</span> train_y.shape == (<span class="number">132</span>, <span class="number">5</span>)</span><br></pre></td></tr></table></figure>
+
+<p>最后得到的训练数据只有132条，最大长度10。</p>
+<h2 id="Embedding-Layer"><a href="#Embedding-Layer" class="headerlink" title="Embedding Layer"></a>Embedding Layer</h2><p>现在定义一个函数，用于构建上面说到的Embedding矩阵。首先把每一行都初始化为0，每读取一个单词，就在其index对应的行填充<code>glove</code>中的向量。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">pretrained_embedding_layer</span>(<span class="params">word_to_index, word_to_vec_map</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Build and return a Keras Embedding Layer given word_to_vec mapping and word_to_index mapping</span></span><br><span class="line"><span class="string">    </span></span><br><span class="line"><span class="string">    Args:</span></span><br><span class="line"><span class="string">        word_to_index (dict[str-&gt;int]): map from a word to its index in vocabulary</span></span><br><span class="line"><span class="string">        word_to_vec_map (dict[str-&gt;np.ndarray]): map from a word to a vector with shape (N,) where N is the length of a word vector (50 in our case)</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">    Return:</span></span><br><span class="line"><span class="string">        Keras.layers.Embedding: Embedding layer</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Keras requires vocab length start from index 1，第一行留空</span></span><br><span class="line">    vocab_len = len(word_to_index) + <span class="number">1</span>  </span><br><span class="line">    emb_dim = list(word_to_vec_map.values())[<span class="number">0</span>].shape[<span class="number">0</span>]</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Initialize the embedding matrix as a numpy array of zeros of shape (vocab_len, dimensions of word vectors = emb_dim)</span></span><br><span class="line">    emb_matrix = np.zeros((vocab_len, emb_dim))</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Set each row &quot;index&quot; of the embedding matrix to be the word vector representation of the &quot;index&quot;th word of the vocabulary</span></span><br><span class="line">    <span class="keyword">for</span> word, index <span class="keyword">in</span> word_to_index.items():</span><br><span class="line">        emb_matrix[index, :] = word_to_vec_map[word]</span><br><span class="line"></span><br><span class="line">    <span class="comment"># Define Keras embedding layer with the correct output/input sizes, make it trainable. Use Embedding(...). Make sure to set trainable=False. </span></span><br><span class="line">    <span class="keyword">return</span> Embedding(</span><br><span class="line">        input_dim=vocab_len,  <span class="comment"># 单词表的长度</span></span><br><span class="line">        output_dim=emb_dim,  <span class="comment">#每个单词向量的长度</span></span><br><span class="line">        trainable=<span class="literal">False</span>,  <span class="comment"># Embedding是否随着训练一起变化。若选true，速度会很慢</span></span><br><span class="line">        weights=[emb_matrix])</span><br></pre></td></tr></table></figure>
+
+<h2 id="Build-the-Model"><a href="#Build-the-Model" class="headerlink" title="Build the Model"></a>Build the Model</h2><p><img src="/2020/nlp-week4/img5.jpg" alt="img5"></p>
+<p>这次建立的模型包含了两层LSTM顺序分类器，即Deep RNN（一般不超过三层）。现在定义一个函数构造模型。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">build_emoji_model</span>(<span class="params">input_dim, word_to_index, word_to_vec_map</span>):</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Build and return the Keras model</span></span><br><span class="line"><span class="string">    </span></span><br><span class="line"><span class="string">    Args:</span></span><br><span class="line"><span class="string">        input_dim: The dim of input layer</span></span><br><span class="line"><span class="string">        word_to_vec_map (dict[str-&gt;np.ndarray]): map from a word to a vector with shape (N,) where N is the length of a word vector (50 in our case)</span></span><br><span class="line"><span class="string">        word_to_index (dict[str-&gt;int]): map from a word to its index in vocabulary</span></span><br><span class="line"><span class="string">    </span></span><br><span class="line"><span class="string">    Returns:</span></span><br><span class="line"><span class="string">        Keras.models.Model: 2-layer LSTM model</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Input layer，得到每一个句子对应的index向量</span></span><br><span class="line">    sentence_indices = Input(shape=(input_dim,), dtype=<span class="string">&#x27;int32&#x27;</span>)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 构造每个词的 Embedding layer，得到所有的e</span></span><br><span class="line">    embedding_layer = pretrained_embedding_layer(word_to_index, word_to_vec_map)</span><br><span class="line">    embeddings = embedding_layer(sentence_indices)   </span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 建立两层的LSTM，dropout用于防治过拟合。</span></span><br><span class="line">    X = LSTM(<span class="number">128</span>, return_sequences=<span class="literal">True</span>, recurrent_dropout=<span class="number">0.5</span>)(embeddings)  <span class="comment"># N-&gt;N RNN，得到所有的a</span></span><br><span class="line">    X = Dropout(rate=<span class="number">0.8</span>)(X)</span><br><span class="line">    X = LSTM(<span class="number">128</span>, recurrent_dropout=<span class="number">0.5</span>)(X)  <span class="comment"># N -&gt; 1 RNN</span></span><br><span class="line">    X = Dropout(rate=<span class="number">0.8</span>)(X)</span><br><span class="line">    X = Dense(<span class="number">5</span>, activation=<span class="string">&#x27;softmax&#x27;</span>)(X)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Create and return model</span></span><br><span class="line">    model = Model(inputs=sentence_indices, outputs=X)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> model</span><br></pre></td></tr></table></figure>
+
+<p>然后查看emoji模型的参数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">emoji_model &#x3D; build_emoji_model(</span><br><span class="line">    maxlen, </span><br><span class="line">    word_to_index, </span><br><span class="line">    word_to_vec_map)</span><br><span class="line"></span><br><span class="line">emoji_model.summary()</span><br><span class="line"></span><br><span class="line">_________________________________________________________________</span><br><span class="line">Layer (type)                 Output Shape              Param #   </span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">input_1 (InputLayer)         [(None, 10)]              0         </span><br><span class="line">_________________________________________________________________</span><br><span class="line">embedding (Embedding)        (None, 10, 50)            20000050  </span><br><span class="line">_________________________________________________________________</span><br><span class="line">lstm (LSTM)                  (None, 10, 128)           91648     </span><br><span class="line">_________________________________________________________________</span><br><span class="line">dropout (Dropout)            (None, 10, 128)           0         </span><br><span class="line">_________________________________________________________________</span><br><span class="line">lstm_1 (LSTM)                (None, 128)               131584    </span><br><span class="line">_________________________________________________________________</span><br><span class="line">dropout_1 (Dropout)          (None, 128)               0         </span><br><span class="line">_________________________________________________________________</span><br><span class="line">dense (Dense)                (None, 5)                 645       </span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">Total params: 20,223,927</span><br><span class="line">Trainable params: 223,877</span><br><span class="line">Non-trainable params: 20,000,050</span><br><span class="line">_________________________________________________________________</span><br></pre></td></tr></table></figure>
+
+<p>可以看到Embedding参数有20000000个，若训练需要非常长的时间。但这里不训练embedding，所有总共只需要训练223887个参数即可。接下来开始训练100个epochs并统计损失曲线和准确率：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">emoji_model.compile(</span><br><span class="line">    loss=<span class="string">&#x27;categorical_crossentropy&#x27;</span>, </span><br><span class="line">    optimizer=<span class="string">&#x27;adam&#x27;</span>, </span><br><span class="line">    metrics=[<span class="string">&#x27;accuracy&#x27;</span>])</span><br><span class="line"></span><br><span class="line">history = emoji_model.fit(</span><br><span class="line">    train_x, </span><br><span class="line">    train_y, </span><br><span class="line">    epochs = <span class="number">100</span>,  </span><br><span class="line">    shuffle=<span class="literal">True</span>,</span><br><span class="line">    validation_data=[test_x, test_y]</span><br><span class="line">)</span><br><span class="line"></span><br><span class="line">utils.plot_history(history, [<span class="string">&#x27;loss&#x27;</span>, <span class="string">&#x27;val_loss&#x27;</span>])</span><br><span class="line"></span><br><span class="line">utils.plot_history(history, [<span class="string">&#x27;acc&#x27;</span>, <span class="string">&#x27;val_acc&#x27;</span>])</span><br><span class="line"></span><br><span class="line">emoji_model.evaluate(train_x, train_y)</span><br><span class="line">emoji_model.evaluate(test_x, test_y)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2020/nlp-week4/img6.jpg" alt="img6"></p>
+<p>可以看到最终的准确率在91%左右。</p>
+<h1 id="Save-and-Load-Models"><a href="#Save-and-Load-Models" class="headerlink" title="Save and Load Models"></a>Save and Load Models</h1><p>需要存储两部分数据：</p>
+<ol>
+<li>Neural Network Structure</li>
+<li>Trained Weights (Matrix)</li>
+</ol>
+<p>一般需要分开存储。这样可以方便管理和选择不同版本的weights用于实际项目。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># import</span></span><br><span class="line"><span class="keyword">import</span> h5py</span><br><span class="line"><span class="keyword">import</span> os</span><br><span class="line"></span><br><span class="line">model_root = <span class="string">&#x27;resources/emoji_model&#x27;</span></span><br><span class="line">os.makedirs(model_root, exist_ok=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Save model structure as json</span></span><br><span class="line"><span class="keyword">with</span> open(os.path.join(model_root, <span class="string">&quot;network.json&quot;</span>), <span class="string">&quot;w&quot;</span>) <span class="keyword">as</span> fp:</span><br><span class="line">    fp.write(emoji_model.to_json())</span><br><span class="line"></span><br><span class="line"><span class="comment"># Save model weights</span></span><br><span class="line">emoji_model.save_weights(os.path.join(model_root, <span class="string">&quot;weights.h5&quot;</span>))</span><br></pre></td></tr></table></figure>
+
+<p>存储完本地训练的模型后，再下载一个已经训练好的最高准确率模型来测试：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">network_path, weights_path = utils.download_best_emoji_model()</span><br><span class="line"></span><br><span class="line"><span class="keyword">from</span> tensorflow.keras.models <span class="keyword">import</span> model_from_json</span><br><span class="line"></span><br><span class="line"><span class="comment"># Load model structure</span></span><br><span class="line"><span class="keyword">with</span> open(network_path, <span class="string">&quot;r&quot;</span>) <span class="keyword">as</span> fp:</span><br><span class="line">    emoji_model_best = model_from_json(fp.read())</span><br><span class="line"></span><br><span class="line"><span class="comment"># Load model weights</span></span><br><span class="line">emoji_model_best.load_weights(weights_path)</span><br><span class="line"></span><br><span class="line">emoji_model_best.compile(</span><br><span class="line">    loss=<span class="string">&#x27;binary_crossentropy&#x27;</span>, </span><br><span class="line">    optimizer=<span class="string">&#x27;adam&#x27;</span>, </span><br><span class="line">    metrics=[<span class="string">&#x27;accuracy&#x27;</span>])</span><br><span class="line"></span><br><span class="line">emoji_model_best.evaluate(train_x, train_y)</span><br><span class="line">emoji_model_best.evaluate(test_x, test_y)</span><br></pre></td></tr></table></figure>
+
+<p>可以发现这个模型准确率在92%左右：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[0.2815101998192923, 0.9285714]</span><br></pre></td></tr></table></figure>
+
+<p>最后来预测一下上次判断错误的带否定词的句子：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">predict(<span class="string">&#x27;i am not feeling great&#x27;</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out: i am not feeling great 😞</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到使用LSTM以后，带否定词的句子也可以成功判断了。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>Wilson
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://www.wilsonovo.com/2020/nlp-week4/" title="Sentiment Analysis Part4">https://www.wilsonovo.com/2020/nlp-week4/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"><i class="fa fa-tag"></i> Python</a>
+              <a href="/tags/NLP/" rel="tag"><i class="fa fa-tag"></i> NLP</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/nlp-week3/" rel="prev" title="Sentiment Analysis Part3">
+      <i class="fa fa-chevron-left"></i> Sentiment Analysis Part3
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/nlp-project/" rel="next" title="Sentiment Analysis on Film Review">
+      Sentiment Analysis on Film Review <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wilson</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments('#gitalk-container', () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '9545dba34400e6a9a4f2',
+      clientSecret: 'c605301f8dfe1864e632afc7529eec5eada3cc8b',
+      repo        : 'blog-comment',
+      owner       : 'wilsongibbs',
+      admin       : ['wilsongibbs'],
+      id          : 'a28ba4f1c7ff99466f6d758000e9a325',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.wilsonovo.com","root":"/","scheme":"Gemini","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":true,"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"path":"search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":true,"preload":false}};
+  </script>
+
+  <meta name="description" content="这周正好没什么课，直接进入Part2。先尝试用Bag of Words来处理数据，然后用朴素贝叶斯方法进行预测。 Pipeline">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sentiment Analysis Part2">
+<meta property="og:url" content="https://www.wilsonovo.com/2020/nlp-week2/">
+<meta property="og:site_name" content="Wilson&#39;s Blog">
+<meta property="og:description" content="这周正好没什么课，直接进入Part2。先尝试用Bag of Words来处理数据，然后用朴素贝叶斯方法进行预测。 Pipeline">
+<meta property="og:locale">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week2/img1.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week2/img2.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week2/img3.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week2/img5.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/nlp-week2/img4.jpg">
+<meta property="article:published_time" content="2020-08-31T11:18:44.000Z">
+<meta property="article:modified_time" content="2020-09-21T03:17:36.386Z">
+<meta property="article:author" content="Wilson">
+<meta property="article:tag" content="Python">
+<meta property="article:tag" content="NLP">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.wilsonovo.com/2020/nlp-week2/img1.jpg">
+
+<link rel="canonical" href="https://www.wilsonovo.com/2020/nlp-week2/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+
+  <title>Sentiment Analysis Part2 | Wilson's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">Wilson's Blog</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Never stop</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">11</span></a>
+
+  </li>
+        <li class="menu-item menu-item-schedule">
+
+    <a href="/schedule/" rel="section"><i class="fa fa-calendar fa-fw"></i>Schedule</a>
+
+  </li>
+        <li class="menu-item menu-item-gallery">
+
+    <a href="https://www.nsrain.com/" rel="noopener" target="_blank"><i class="fa fa-photo-video fa-fw"></i>Gallery</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Pipeline"><span class="nav-number">1.</span> <span class="nav-text">Pipeline</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%8E%B7%E5%8F%96IMDB%E8%AF%84%E8%AE%BA%E6%95%B0%E6%8D%AE"><span class="nav-number">2.</span> <span class="nav-text">获取IMDB评论数据</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Preprocessing"><span class="nav-number">3.</span> <span class="nav-text">Preprocessing</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Tokenization-and-Normalization"><span class="nav-number">3.1.</span> <span class="nav-text">Tokenization and Normalization</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Build-Vocabulary"><span class="nav-number">3.2.</span> <span class="nav-text">Build Vocabulary</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Vectorizer"><span class="nav-number">3.3.</span> <span class="nav-text">Vectorizer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Tf%E2%80%93idf-Transformer%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-number">3.4.</span> <span class="nav-text">Tf–idf Transformer是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Vectorization-Featurization"><span class="nav-number">3.5.</span> <span class="nav-text">Vectorization &#x2F; Featurization</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Training"><span class="nav-number">4.</span> <span class="nav-text">Training</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Evaluation"><span class="nav-number">5.</span> <span class="nav-text">Evaluation</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Predict-new-text"><span class="nav-number">6.</span> <span class="nav-text">Predict new text</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Tunning-hyper-parameters"><span class="nav-number">7.</span> <span class="nav-text">Tunning hyper parameters</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Save-model"><span class="nav-number">8.</span> <span class="nav-text">Save model</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">9.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Wilson"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">Wilson</p>
+  <div class="site-description" itemprop="description">Software developer, undergraduate, CS major.</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wilsongibbs" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wilsongibbs" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/WilsongibbsZ" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;WilsongibbsZ" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
+    <link itemprop="mainEntityOfPage" href="https://www.wilsonovo.com/2020/nlp-week2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="Wilson">
+      <meta itemprop="description" content="Software developer, undergraduate, CS major.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wilson's Blog">
+    </span>
+
+    
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Sentiment Analysis Part2
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-08-31 19:18:44" itemprop="dateCreated datePublished" datetime="2020-08-31T19:18:44+08:00">2020-08-31</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-09-21 11:17:36" itemprop="dateModified" datetime="2020-09-21T11:17:36+08:00">2020-09-21</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/coding/" itemprop="url" rel="index"><span itemprop="name">coding</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p>这周正好没什么课，直接进入Part2。先尝试用Bag of Words来处理数据，然后用朴素贝叶斯方法进行预测。</p>
+<h1 id="Pipeline"><a href="#Pipeline" class="headerlink" title="Pipeline"></a>Pipeline</h1><p><img src="/2020/nlp-week2/img1.jpg" alt="img1"></p>
+<a id="more"></a>
+
+<h1 id="获取IMDB评论数据"><a href="#获取IMDB评论数据" class="headerlink" title="获取IMDB评论数据"></a>获取IMDB评论数据</h1><p>第一步，先获取已经标注好情感的影评数据，然后查看数据样式。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> pandas <span class="keyword">as</span> pd</span><br><span class="line"><span class="keyword">from</span> nlp_proj_utils <span class="keyword">import</span> get_imdb_dataset</span><br><span class="line"></span><br><span class="line">pd.set_option(<span class="string">&#x27;max_colwidth&#x27;</span>, <span class="number">500</span>)  <span class="comment"># Set display column width to show more content</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># Load dataset, download if necessary</span></span><br><span class="line">train, test = get_imdb_dataset()</span><br><span class="line"></span><br><span class="line"><span class="comment"># Get a sample (head) of the data frame</span></span><br><span class="line">train.sample(<span class="number">5</span>)</span><br></pre></td></tr></table></figure>
+
+<p>随机抽取五条数据，可以看出分成两列，一列是包含html标签的影评，另一列是情感标记。</p>
+<p><img src="/2020/nlp-week2/img2.jpg" alt="img2"></p>
+<p>然后统计数据形态，可以发现train和test都有25000条数据，一般情况下，两者数量保持相近最佳。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">print(<span class="string">&#x27;train shape:&#x27;</span>, train.shape)</span><br><span class="line">print(<span class="string">&#x27;test  shape:&#x27;</span>, test.shape)</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># train shape: (25000, 2)</span></span><br><span class="line"><span class="comment"># test  shape: (25000, 2)</span></span><br><span class="line">  </span><br><span class="line"><span class="comment"># Statics on tags</span></span><br><span class="line">train[<span class="string">&#x27;sentiment&#x27;</span>].value_counts()</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># neg    12500</span></span><br><span class="line"><span class="comment"># pos    12500</span></span><br><span class="line"><span class="comment"># Name: sentiment, dtype: int64</span></span><br></pre></td></tr></table></figure>
+
+<h1 id="Preprocessing"><a href="#Preprocessing" class="headerlink" title="Preprocessing"></a>Preprocessing</h1><h2 id="Tokenization-and-Normalization"><a href="#Tokenization-and-Normalization" class="headerlink" title="Tokenization and Normalization"></a>Tokenization and Normalization</h2><p>预处理部分，需要：</p>
+<ul>
+<li>去掉影评数据中的html标签</li>
+<li>去掉标点符号</li>
+<li>将每个影评切分成tokens</li>
+<li>将<strong>stopwords</strong>，如人称代词等对情感分析用处不大的词去掉</li>
+<li>剩余词组进行lemmatization词形还原</li>
+</ul>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> nltk</span><br><span class="line"><span class="keyword">import</span> string</span><br><span class="line"></span><br><span class="line"><span class="comment"># 将标点符号转为&#x27; &#x27;</span></span><br><span class="line">transtbl = str.maketrans(string.punctuation, <span class="string">&#x27; &#x27;</span> * len(string.punctuation))</span><br><span class="line">stopwords = nltk.corpus.stopwords.words(<span class="string">&#x27;english&#x27;</span>)</span><br><span class="line">lemmatizer = nltk.WordNetLemmatizer()</span><br><span class="line"></span><br><span class="line">stopwords[:<span class="number">10</span>]</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># [&#x27;i&#x27;, &#x27;me&#x27;, &#x27;my&#x27;, &#x27;myself&#x27;, &#x27;we&#x27;, &#x27;our&#x27;, &#x27;ours&#x27;, &#x27;ourselves&#x27;, &#x27;you&#x27;, &quot;you&#x27;re&quot;]</span></span><br><span class="line"></span><br><span class="line">string.punctuation</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># &#x27;!&quot;#$%&amp;\&#x27;()*+,-./:;&lt;=&gt;?@[\\]^_`&#123;|&#125;~&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">#首次使用nltk需要下载相关资源包</span></span><br><span class="line">nltk.download()</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">preprocessing</span>(<span class="params">line: str</span>) -&gt; str:</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Take a text input and return the preprocessed string.</span></span><br><span class="line"><span class="string">    i.e.: 定义一个函数将影评语句预处理为由空格分开的字符串并返回</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    <span class="comment"># 换标点符号为空格，去掉html标签</span></span><br><span class="line">    line = line.replace(<span class="string">&#x27;&lt;br /&gt;&#x27;</span>, <span class="string">&#x27;&#x27;</span>).translate(transtbl)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 创建一个包含不在stopwords中的单词组成的list</span></span><br><span class="line">    tokens = [lemmatizer.lemmatize(t.lower(),<span class="string">&#x27;v&#x27;</span>)</span><br><span class="line">              <span class="keyword">for</span> t <span class="keyword">in</span> nltk.word_tokenize(line)</span><br><span class="line">              <span class="keyword">if</span> t.lower() <span class="keyword">not</span> <span class="keyword">in</span> stopwords]</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 以字符串形式返回</span></span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27; &#x27;</span>.join(tokens)</span><br></pre></td></tr></table></figure>
+
+<p>然后测试一条数据：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">test_str = <span class="string">&quot;I bought several books yesterday&lt;br /&gt; and I really love them!&quot;</span></span><br><span class="line">preprocessing(test_str)</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># &#x27;buy several book yesterday really love&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>可以看到得到的输出已完成预处理，下面就可以把所有影评都预处理了。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> tqdm._tqdm_notebook <span class="keyword">import</span> tqdm_notebook</span><br><span class="line">tqdm_notebook.pandas()</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用多线程可能出现其他问题，暂时不用</span></span><br><span class="line"><span class="comment"># If you&#x27;re using macOS and Linux, you may run un-comment the following code to speed up the preprocessing</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># !pip install pandarallel</span></span><br><span class="line"><span class="comment"># from pandarallel import pandarallel</span></span><br><span class="line"><span class="comment"># pandarallel.initialize(progress_bar=True)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># If you&#x27;re using Windows, run the following, otherwise, comment this out, and run the second statement instead</span></span><br><span class="line"><span class="comment"># 添加一列数据&#x27;text_prep&#x27;，用来存放预处理好的影评</span></span><br><span class="line"><span class="keyword">for</span> df <span class="keyword">in</span> train, test:</span><br><span class="line">    df[<span class="string">&#x27;text_prep&#x27;</span>] = df[<span class="string">&#x27;text&#x27;</span>].progress_apply(preprocessing)</span><br><span class="line">    </span><br><span class="line"><span class="comment"># If you&#x27;re using macOS or Linux, un-comment and run the following code</span></span><br><span class="line"><span class="comment"># for df in train, test:</span></span><br><span class="line"><span class="comment">#     df[&#x27;text_prep&#x27;] = df[&#x27;text&#x27;].parallel_apply(preprocessing)</span></span><br></pre></td></tr></table></figure>
+
+<p>稍等片刻，完成后检验数据形态，并抽样检查</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">assert</span> train.shape == (<span class="number">25000</span>, <span class="number">3</span>)</span><br><span class="line"><span class="keyword">assert</span> test.shape == (<span class="number">25000</span>, <span class="number">3</span>)</span><br><span class="line">train.sample(<span class="number">2</span>)</span><br></pre></td></tr></table></figure>
+
+<p><img src="/2020/nlp-week2/img3.jpg" alt="img3"></p>
+<p>可以看出，已经达到了预处理要求</p>
+<h2 id="Build-Vocabulary"><a href="#Build-Vocabulary" class="headerlink" title="Build Vocabulary"></a>Build Vocabulary</h2><p>下一步，运用最简单的Bag of Words统计单词数据。</p>
+<p>Instead of using <code>CountVectorizer</code> (N-gram) provided by sklearn directly, we will build the vocabulary on our own, so that we have more control over it.</p>
+<p><strong>Tips:</strong> 只能使用train数据构建词库</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 将预处理的数据提取成所有单词的list</span></span><br><span class="line">all_words = [w <span class="keyword">for</span> text <span class="keyword">in</span> tqdm_notebook(train[<span class="string">&#x27;text_prep&#x27;</span>]) </span><br><span class="line">             <span class="keyword">for</span> w <span class="keyword">in</span> text.split()]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 用FreqDist统计每个词出现次数</span></span><br><span class="line">voca = nltk.FreqDist(all_words)</span><br><span class="line">print(voca)</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># &lt;FreqDist with 65102 samples and 3025774 outcomes&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看词频最高的十个单词</span></span><br><span class="line">voca.most_common(<span class="number">10</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line">[(<span class="string">&#x27;film&#x27;</span>, <span class="number">48184</span>),</span><br><span class="line"> (<span class="string">&#x27;movie&#x27;</span>, <span class="number">44024</span>),</span><br><span class="line"> (<span class="string">&#x27;one&#x27;</span>, <span class="number">26785</span>),</span><br><span class="line"> (<span class="string">&#x27;make&#x27;</span>, <span class="number">23568</span>),</span><br><span class="line"> (<span class="string">&#x27;like&#x27;</span>, <span class="number">22361</span>),</span><br><span class="line"> (<span class="string">&#x27;see&#x27;</span>, <span class="number">20792</span>),</span><br><span class="line"> (<span class="string">&#x27;get&#x27;</span>, <span class="number">18140</span>),</span><br><span class="line"> (<span class="string">&#x27;time&#x27;</span>, <span class="number">16167</span>),</span><br><span class="line"> (<span class="string">&#x27;good&#x27;</span>, <span class="number">15140</span>),</span><br><span class="line"> (<span class="string">&#x27;character&#x27;</span>, <span class="number">14172</span>)]</span><br><span class="line"></span><br><span class="line"><span class="comment"># 暂时先取前10000个词，后面太少见的舍去</span></span><br><span class="line">topwords = [word <span class="keyword">for</span> word, _ <span class="keyword">in</span> voca.most_common(<span class="number">10000</span>)]</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Vectorizer"><a href="#Vectorizer" class="headerlink" title="Vectorizer"></a>Vectorizer</h2><p>先了解将单词数据向量化的方法，即用<strong>BoW</strong> (1-gram) 和 <strong>BoW with Tfidf Transformer</strong>.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sklearn.feature_extraction.text <span class="keyword">import</span> (</span><br><span class="line">    CountVectorizer, </span><br><span class="line">    TfidfTransformer, </span><br><span class="line">    TfidfVectorizer,)</span><br><span class="line">CountVectorizer()</span><br></pre></td></tr></table></figure>
+
+<p>查看CountVectorizer接收的参数</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">CountVectorizer(analyzer=<span class="string">&#x27;word&#x27;</span>, binary=<span class="literal">False</span>, decode_error=<span class="string">&#x27;strict&#x27;</span>,</span><br><span class="line">                dtype=&lt;class &#x27;numpy.int64&#x27;&gt;, encoding=&#x27;utf-8&#x27;, input=&#x27;content&#x27;,</span><br><span class="line">                lowercase=<span class="literal">True</span>, max_df=<span class="number">1.0</span>, max_features=<span class="literal">None</span>, min_df=<span class="number">1</span>,</span><br><span class="line">                ngram_range=(<span class="number">1</span>, <span class="number">1</span>), preprocessor=<span class="literal">None</span>, stop_words=<span class="literal">None</span>,</span><br><span class="line">                strip_accents=<span class="literal">None</span>, token_pattern=<span class="string">&#x27;(?u)\\b\\w\\w+\\b&#x27;</span>,</span><br><span class="line">                tokenizer=<span class="literal">None</span>, vocabulary=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
+
+<p><code>ngram_range=(1, 1)</code> 意思是一维N-gram，即<strong>BOW</strong>，若要取2，则是(2,2)</p>
+<h2 id="Tf–idf-Transformer是什么？"><a href="#Tf–idf-Transformer是什么？" class="headerlink" title="Tf–idf Transformer是什么？"></a>Tf–idf Transformer是什么？</h2><ul>
+<li><p>Tf: Term-Frequency，即词频</p>
+</li>
+<li><p>idf: Inverse Document-Frequency</p>
+</li>
+<li><p>Tf-idf = $tf(t,d) \times idf(t)$</p>
+</li>
+<li><p>Tf: Term-Frequency</p>
+</li>
+<li><p>idf: Inverse Document-Frequency</p>
+</li>
+<li><p>Tf-idf = 𝑡𝑓(𝑡,𝑑) × 𝑖𝑑𝑓(𝑡)</p>
+<p><img src="/2020/nlp-week2/img5.jpg" alt="img5"></p>
+</li>
+</ul>
+<p>据我理解，所谓的<strong>Tf-idf</strong>，就是通过一个log函数计算出某个词对情感分析的作用大小，量化为数值，然后再乘词频，以达到调整分析中各种单词的权重。例如：</p>
+<blockquote>
+<p>Sentence 1: The boy <strong>love</strong> the toy</p>
+<p>Sentence 2: The boy <strong>hate</strong> the toy</p>
+</blockquote>
+<p>因为boy在两句话中都出现了，对情感判断没有太大帮助，所以要降低权重。因此<strong>love</strong>和<strong>hate</strong>这样的词，算出来的<strong>Tf-idf</strong>值远比boy要高。下面用测试数据来试验：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">transformer = TfidfTransformer(smooth_idf=<span class="literal">False</span>)</span><br><span class="line">transformer</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># TfidfTransformer(norm=&#x27;l2&#x27;, smooth_idf=False, sublinear_tf=False, use_idf=True)</span></span><br><span class="line"></span><br><span class="line">counts = [[<span class="number">3</span>, <span class="number">0</span>, <span class="number">1</span>],</span><br><span class="line">          [<span class="number">2</span>, <span class="number">0</span>, <span class="number">0</span>],</span><br><span class="line">          [<span class="number">3</span>, <span class="number">0</span>, <span class="number">0</span>],</span><br><span class="line">          [<span class="number">4</span>, <span class="number">0</span>, <span class="number">0</span>],</span><br><span class="line">          [<span class="number">3</span>, <span class="number">2</span>, <span class="number">0</span>],</span><br><span class="line">          [<span class="number">3</span>, <span class="number">0</span>, <span class="number">2</span>]]</span><br><span class="line">tfidf = transformer.fit_transform(counts)</span><br><span class="line">tfidf</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># &lt;6x3 sparse matrix of type &#x27;&lt;class &#x27;numpy.float64&#x27;&gt;&#x27;</span></span><br><span class="line"><span class="comment">#   with 9 stored elements in Compressed Sparse Row format&gt;</span></span><br><span class="line"></span><br><span class="line">tfidf.toarray()</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line">array([[<span class="number">0.81940995</span>, <span class="number">0.</span>        , <span class="number">0.57320793</span>],</span><br><span class="line">       [<span class="number">1.</span>        , <span class="number">0.</span>        , <span class="number">0.</span>        ],</span><br><span class="line">       [<span class="number">1.</span>        , <span class="number">0.</span>        , <span class="number">0.</span>        ],</span><br><span class="line">       [<span class="number">1.</span>        , <span class="number">0.</span>        , <span class="number">0.</span>        ],</span><br><span class="line">       [<span class="number">0.47330339</span>, <span class="number">0.88089948</span>, <span class="number">0.</span>        ],</span><br><span class="line">       [<span class="number">0.58149261</span>, <span class="number">0.</span>        , <span class="number">0.81355169</span>]])</span><br></pre></td></tr></table></figure>
+
+<p>假设一个counts中，每一行代表一个句子，每个句子都由三个单词组成，数字代表词频。计算出结果可以发现，第二个词的<strong>Tf-idf</strong>更高</p>
+<p>实际上，在sklearn中，<code>TfidfVectorizer</code> 就是 <code>CountVectorizer</code> + <code>TfidTransformer</code></p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">TfidfVectorizer()</span><br></pre></td></tr></table></figure>
+
+
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">TfidfVectorizer(analyzer=<span class="string">&#x27;word&#x27;</span>, binary=<span class="literal">False</span>, decode_error=<span class="string">&#x27;strict&#x27;</span>,</span><br><span class="line">                dtype=&lt;class &#x27;numpy.float64&#x27;&gt;, encoding=&#x27;utf-8&#x27;,</span><br><span class="line">                input=<span class="string">&#x27;content&#x27;</span>, lowercase=<span class="literal">True</span>, max_df=<span class="number">1.0</span>, max_features=<span class="literal">None</span>,</span><br><span class="line">                min_df=<span class="number">1</span>, ngram_range=(<span class="number">1</span>, <span class="number">1</span>), norm=<span class="string">&#x27;l2&#x27;</span>, preprocessor=<span class="literal">None</span>,</span><br><span class="line">                smooth_idf=<span class="literal">True</span>, stop_words=<span class="literal">None</span>, strip_accents=<span class="literal">None</span>,</span><br><span class="line">                sublinear_tf=<span class="literal">False</span>, token_pattern=<span class="string">&#x27;(?u)\\b\\w\\w+\\b&#x27;</span>,</span><br><span class="line">                tokenizer=<span class="literal">None</span>, use_idf=<span class="literal">True</span>, vocabulary=<span class="literal">None</span>)</span><br></pre></td></tr></table></figure>
+
+<p>用上面的例子来测试：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Tfidf</span></span><br><span class="line">t_tfidf_vec = TfidfVectorizer()</span><br><span class="line">t_tfidf_vec.fit(<span class="string">&#x27; &#x27;</span>.join(t_corpus).split())</span><br><span class="line">t_tfidf_vec.transform(t_corpus).toarray()</span><br><span class="line">t_corpus = [<span class="string">&#x27;the boy love the toy&#x27;</span>, <span class="string">&#x27;the boy hate the toy&#x27;</span>]</span><br><span class="line"></span><br><span class="line"><span class="comment"># Bag of words</span></span><br><span class="line"><span class="comment"># Voc = [&#x27;boy&#x27;, &#x27;hate&#x27;, &#x27;love&#x27;, &#x27;the&#x27;, &#x27;toy&#x27;]</span></span><br><span class="line"></span><br><span class="line">t_cnt_vec = CountVectorizer()</span><br><span class="line"><span class="comment"># fit一般只用于train数据</span></span><br><span class="line">t_cnt_vec.fit(<span class="string">&#x27; &#x27;</span>.join(t_corpus).split())</span><br><span class="line">t_cnt_vec.transform(t_corpus).toarray()</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line">array([[<span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">1</span>],</span><br><span class="line">       [<span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">2</span>, <span class="number">1</span>]])</span><br><span class="line"></span><br><span class="line"><span class="comment"># Tfidf</span></span><br><span class="line">t_tfidf_vec = TfidfVectorizer()</span><br><span class="line">t_tfidf_vec.fit(<span class="string">&#x27; &#x27;</span>.join(t_corpus).split())</span><br><span class="line">t_tfidf_vec.transform(t_corpus).toarray()</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line">array([[<span class="number">0.41508858</span>, <span class="number">0.</span>        , <span class="number">0.48828702</span>, <span class="number">0.6457389</span> , <span class="number">0.41508858</span>],</span><br><span class="line">       [<span class="number">0.41508858</span>, <span class="number">0.48828702</span>, <span class="number">0.</span>        , <span class="number">0.6457389</span> , <span class="number">0.41508858</span>]])</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="Vectorization-Featurization"><a href="#Vectorization-Featurization" class="headerlink" title="Vectorization / Featurization"></a>Vectorization / Featurization</h2><p>接下来将影评数据向量化</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">train_x, train_y = train[<span class="string">&#x27;text_prep&#x27;</span>], train[<span class="string">&#x27;sentiment&#x27;</span>]</span><br><span class="line">test_x, test_y = test[<span class="string">&#x27;text_prep&#x27;</span>], test[<span class="string">&#x27;sentiment&#x27;</span>]</span><br><span class="line"></span><br><span class="line"><span class="comment"># Use topwords as vocabulary</span></span><br><span class="line">tf_vec = TfidfVectorizer(vocabulary=topwords)</span><br><span class="line"></span><br><span class="line">train_features = tf_vec.fit_transform(train_x)</span><br><span class="line">test_features = tf_vec.transform(test_x)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 检查数据形态</span></span><br><span class="line"><span class="keyword">assert</span> train_features.shape == (<span class="number">25000</span>, <span class="number">10000</span>)</span><br><span class="line"><span class="keyword">assert</span> test_features.shape == (<span class="number">25000</span>, <span class="number">10000</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># 查看前50个结果</span></span><br><span class="line">train_features[<span class="number">0</span>][:<span class="number">50</span>].toarray()</span><br></pre></td></tr></table></figure>
+
+<p>可以看出得到的数据非常稀疏</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">array([[<span class="number">0.</span>       , <span class="number">0.1287998</span>, <span class="number">0.</span>       , ..., <span class="number">0.</span>       , <span class="number">0.</span>       ,</span><br><span class="line">        <span class="number">0.</span>       ]])</span><br></pre></td></tr></table></figure>
+
+<h1 id="Training"><a href="#Training" class="headerlink" title="Training"></a>Training</h1><p>对于训练模型部分，要建立影评和情感的联系，可以使用朴素贝叶斯方法，这里使用<a target="_blank" rel="noopener" href="http://scikit-learn.org/stable/modules/generated/sklearn.naive_bayes.MultinomialNB.html">Multinomial NB</a>库实现。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sklearn.naive_bayes <span class="keyword">import</span> MultinomialNB</span><br><span class="line"></span><br><span class="line">mnb_model = MultinomialNB()</span><br><span class="line">mnb_model</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># MultinomialNB(alpha=1.0, class_prior=None, fit_prior=True)</span></span><br><span class="line"></span><br><span class="line">%%time</span><br><span class="line"></span><br><span class="line"><span class="comment"># Train Model</span></span><br><span class="line">mnb_model.fit(train_features, train_y)</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># CPU times: user 72.4 ms, sys: 18.6 ms, total: 91 ms</span></span><br><span class="line"><span class="comment"># Wall time: 93.8 ms</span></span><br></pre></td></tr></table></figure>
+
+<p>可以发现NB方法速度非常快</p>
+<h1 id="Evaluation"><a href="#Evaluation" class="headerlink" title="Evaluation"></a>Evaluation</h1><p>接下来用test数据对模型正确率进行评估</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> sklearn <span class="keyword">import</span> metrics</span><br><span class="line"></span><br><span class="line"><span class="comment"># Predict on test set</span></span><br><span class="line">pred = mnb_model.predict(test_features)</span><br><span class="line">print(pred)</span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line"><span class="comment"># [&#x27;neg&#x27; &#x27;pos&#x27; &#x27;pos&#x27; ... &#x27;neg&#x27; &#x27;neg&#x27; &#x27;neg&#x27;]</span></span><br><span class="line"></span><br><span class="line">print(<span class="string">&#x27;Accuracy: %f&#x27;</span> % metrics.accuracy_score(pred,test_y))</span><br><span class="line"><span class="comment">#Out</span></span><br><span class="line"><span class="comment"># Accuracy: 0.833000</span></span><br></pre></td></tr></table></figure>
+
+<p>得到目前的模型正确率是0.833</p>
+<p>It doesn’t matter if you change the order of <code>pred</code> and <code>test_y</code> passed into <code>accuracy_score</code> since the metrics is symmetric. <strong>However</strong>, it is extremely important that you pass them in the correct order when you need to calculate per-class metrics like f-score.</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Pass in as keyword arguments to make sure the order is correct</span></span><br><span class="line">print(</span><br><span class="line">    metrics.classification_report(y_true=test_y, y_pred=pred))</span><br></pre></td></tr></table></figure>
+
+<pre><code>              precision    recall  f1-score   support
+
+         neg       0.81      0.87      0.84     12500
+         pos       0.86      0.80      0.83     12500
+
+    accuracy                           0.83     25000
+   macro avg       0.83      0.83      0.83     25000
+weighted avg       0.83      0.83      0.83     25000</code></pre>
+<p>从分类器报告可以看出，这个模型偏向于把输入判定为负面影评, f-score在0.83左右</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Example from sklearn documentation</span></span><br><span class="line"></span><br><span class="line">y_true = [<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">2</span>]</span><br><span class="line">y_pred = [<span class="number">0</span>, <span class="number">0</span>, <span class="number">2</span>, <span class="number">2</span>, <span class="number">1</span>]</span><br><span class="line">target_names = [<span class="string">&#x27;class 0&#x27;</span>, <span class="string">&#x27;class 1&#x27;</span>, <span class="string">&#x27;class 2&#x27;</span>]</span><br><span class="line">print(metrics.classification_report(y_true, y_pred, target_names=target_names))</span><br></pre></td></tr></table></figure>
+
+<pre><code>              precision    recall  f1-score   support
+
+     class 0       0.50      1.00      0.67         1
+     class 1       0.00      0.00      0.00         1
+     class 2       1.00      0.67      0.80         3
+
+    accuracy                           0.60         5
+   macro avg       0.50      0.56      0.49         5
+weighted avg       0.70      0.60      0.61         5</code></pre>
+<h1 id="Predict-new-text"><a href="#Predict-new-text" class="headerlink" title="Predict new text"></a>Predict new text</h1><p>现在使用模型来预测一个新的文本，首先定义一个函数</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">predict_new</span>(<span class="params">prep_func,  <span class="comment"># func for preprocessing</span></span></span></span><br><span class="line"><span class="function"><span class="params">                vec,        <span class="comment"># vectorizer</span></span></span></span><br><span class="line"><span class="function"><span class="params">                model,      <span class="comment"># model</span></span></span></span><br><span class="line"><span class="function"><span class="params">                text</span>):</span>      <span class="comment"># text</span></span><br><span class="line">    </span><br><span class="line">    prep_text = prep_func(text)</span><br><span class="line">    <span class="comment"># 以list的形式tranform</span></span><br><span class="line">    features = vec.transform([prep_text])</span><br><span class="line">    pred = model.predict(features)</span><br><span class="line">    <span class="comment"># 只需要预测一条数据</span></span><br><span class="line">    <span class="keyword">return</span> pred[<span class="number">0</span>]</span><br><span class="line">  </span><br><span class="line"><span class="keyword">from</span> functools <span class="keyword">import</span> partial</span><br><span class="line"></span><br><span class="line">predict_new_p1 = partial(predict_new, preprocessing, tf_vec, mnb_model)</span><br><span class="line">predict_new_p1(<span class="string">&#x27;It looks great&#x27;</span>)</span><br><span class="line"><span class="comment"># Out </span></span><br><span class="line"><span class="comment"># &#x27;pos&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<p>预测成功！</p>
+<h1 id="Tunning-hyper-parameters"><a href="#Tunning-hyper-parameters" class="headerlink" title="Tunning hyper parameters"></a>Tunning hyper parameters</h1><p>为了提高模型正确率，需要调整一些瞎编的参数，比如刚刚取的“前10000”</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">train_with_n_topwords</span>(<span class="params">n: int, tfidf=False</span>) -&gt; tuple:</span></span><br><span class="line">    <span class="string">&quot;&quot;&quot;</span></span><br><span class="line"><span class="string">    Train and get the accuracy with different model settings</span></span><br><span class="line"><span class="string">    Args:</span></span><br><span class="line"><span class="string">        n: number of features (top frequent words in the vocabulary)</span></span><br><span class="line"><span class="string">        tfidf: whether do tf-idf re-weighting or not</span></span><br><span class="line"><span class="string">    Outputs:</span></span><br><span class="line"><span class="string">        tuple: (accuracy score, classifier, vectorizer)</span></span><br><span class="line"><span class="string">    &quot;&quot;&quot;</span></span><br><span class="line">    topwords = [word <span class="keyword">for</span> word, _ <span class="keyword">in</span> voca.most_common(n)]</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> tfidf:</span><br><span class="line">        vec = TfidfVectorizer(vocabulary=topwords)</span><br><span class="line">    <span class="keyword">else</span>:</span><br><span class="line">        vec = CountVectorizer(vocabulary=topwords)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Generate feature vectors 生成向量化数据</span></span><br><span class="line">    train_features = vec.fit_transform(train_x)</span><br><span class="line">    test_features  = vec.transform(test_x)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># 用NB建立模型</span></span><br><span class="line">    mnb_model = MultinomialNB()</span><br><span class="line">    mnb_model.fit(train_features, train_y)</span><br><span class="line">    </span><br><span class="line">    <span class="comment"># Test predict</span></span><br><span class="line">    pred = mnb_model.predict(test_features)</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> metrics.accuracy_score(pred, test_y), mnb_model, vec</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>测试取前500词时的模型正确率</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">train_with_n_topwords(<span class="number">500</span>, tfidf=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment"># Out</span></span><br><span class="line">(<span class="number">0.82516</span>,</span><br><span class="line"> MultinomialNB(alpha=<span class="number">1.0</span>, class_prior=<span class="literal">None</span>, fit_prior=<span class="literal">True</span>),</span><br><span class="line"> TfidfVectorizer(analyzer=<span class="string">&#x27;word&#x27;</span>, binary=<span class="literal">False</span>, decode_error=<span class="string">&#x27;strict&#x27;</span>,</span><br><span class="line">                 dtype=&lt;class &#x27;numpy.float64&#x27;&gt;, encoding=&#x27;utf-8&#x27;,</span><br><span class="line">                 input=<span class="string">&#x27;content&#x27;</span>, lowercase=<span class="literal">True</span>, max_df=<span class="number">1.0</span>, max_features=<span class="literal">None</span>,</span><br><span class="line">                 min_df=<span class="number">1</span>, ngram_range=(<span class="number">1</span>, <span class="number">1</span>), norm=<span class="string">&#x27;l2&#x27;</span>, preprocessor=<span class="literal">None</span>,</span><br><span class="line">                 smooth_idf=<span class="literal">True</span>, stop_words=<span class="literal">None</span>, strip_accents=<span class="literal">None</span>,</span><br><span class="line">                 sublinear_tf=<span class="literal">False</span>, token_pattern=<span class="string">&#x27;(?u)\\b\\w\\w+\\b&#x27;</span>,</span><br><span class="line">                 tokenizer=<span class="literal">None</span>, use_idf=<span class="literal">True</span>,</span><br><span class="line">                 vocabulary=[<span class="string">&#x27;film&#x27;</span>, <span class="string">&#x27;movie&#x27;</span>, <span class="string">&#x27;one&#x27;</span>, <span class="string">&#x27;make&#x27;</span>, <span class="string">&#x27;like&#x27;</span>, <span class="string">&#x27;see&#x27;</span>,</span><br><span class="line">                             <span class="string">&#x27;get&#x27;</span>, <span class="string">&#x27;time&#x27;</span>, <span class="string">&#x27;good&#x27;</span>, <span class="string">&#x27;character&#x27;</span>, <span class="string">&#x27;go&#x27;</span>, <span class="string">&#x27;watch&#x27;</span>,</span><br><span class="line">                             <span class="string">&#x27;even&#x27;</span>, <span class="string">&#x27;would&#x27;</span>, <span class="string">&#x27;think&#x27;</span>, <span class="string">&#x27;story&#x27;</span>, <span class="string">&#x27;really&#x27;</span>, <span class="string">&#x27;well&#x27;</span>,</span><br><span class="line">                             <span class="string">&#x27;show&#x27;</span>, <span class="string">&#x27;look&#x27;</span>, <span class="string">&#x27;much&#x27;</span>, <span class="string">&#x27;say&#x27;</span>, <span class="string">&#x27;end&#x27;</span>, <span class="string">&#x27;know&#x27;</span>,</span><br><span class="line">                             <span class="string">&#x27;people&#x27;</span>, <span class="string">&#x27;bad&#x27;</span>, <span class="string">&#x27;also&#x27;</span>, <span class="string">&#x27;first&#x27;</span>, <span class="string">&#x27;great&#x27;</span>, <span class="string">&#x27;give&#x27;</span>, ...]))</span><br></pre></td></tr></table></figure>
+
+<p>测试取前500-10000词时的模型正确率，并绘制统计图</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">possible_n = [<span class="number">500</span> * i <span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">1</span>, <span class="number">20</span>)]</span><br><span class="line"></span><br><span class="line">cnt_accuracies = []</span><br><span class="line">tfidf_accuracies = []</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> n <span class="keyword">in</span> tqdm_notebook(possible_n):</span><br><span class="line">    cnt_accuracies.append(train_with_n_topwords(n)[<span class="number">0</span>])</span><br><span class="line">    tfidf_accuracies.append(train_with_n_topwords(n, tfidf=<span class="literal">True</span>)[<span class="number">0</span>])</span><br><span class="line">    </span><br><span class="line"><span class="keyword">import</span> matplotlib.pyplot <span class="keyword">as</span> plt</span><br><span class="line">%matplotlib inline</span><br><span class="line">%config InlineBackend.figure_format=<span class="string">&#x27;retina&#x27;</span></span><br><span class="line"></span><br><span class="line">plt.plot(possible_n, cnt_accuracies, label=<span class="string">&#x27;Word Count&#x27;</span>)</span><br><span class="line">plt.plot(possible_n, tfidf_accuracies, label=<span class="string">&#x27;Tf-idf&#x27;</span>)</span><br></pre></td></tr></table></figure>
+
+<p>结果：</p>
+<p><img src="/2020/nlp-week2/img4.jpg" alt="img4"></p>
+<h1 id="Save-model"><a href="#Save-model" class="headerlink" title="Save model"></a>Save model</h1><p>最后，可以用<code>pickle</code>保存计算好的模型</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">_, model, vec = train_with_n_topwords(<span class="number">3000</span>, tfidf=<span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> pickle</span><br><span class="line"></span><br><span class="line"><span class="keyword">with</span> open(<span class="string">&#x27;tf_vec.pkl&#x27;</span>, <span class="string">&#x27;wb&#x27;</span>) <span class="keyword">as</span> fp:</span><br><span class="line">    pickle.dump(vec, fp)</span><br><span class="line">    </span><br><span class="line"><span class="keyword">with</span> open(<span class="string">&#x27;mnb_model.pkl&#x27;</span>, <span class="string">&#x27;wb&#x27;</span>) <span class="keyword">as</span> fp:</span><br><span class="line">    pickle.dump(model, fp)</span><br><span class="line"></span><br><span class="line">!ls</span><br></pre></td></tr></table></figure>
+
+<pre><code>__pycache__                 resources
+mnb_model.pkl               sentiment_analysis_p1.ipynb
+nlp_proj_utils.py           tf_vec.pkl</code></pre>
+<p>使用：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">with</span> open(<span class="string">&#x27;tf_vec.pkl&#x27;</span>,<span class="string">&#x27;rb&#x27;</span>) <span class="keyword">as</span> fp:</span><br><span class="line">    loaded_tf_vec = pickle.load(fp)</span><br></pre></td></tr></table></figure>
+
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>今天真正地在自己的电脑上跑了一个最简单的NLP，发现Jupyter Notebook可以以这样的方式一句一句的执行Python代码，同时还可以嵌入Markdown，确实是一个强悍的Notebook。虽然目前用的方法都是最简单最理想化的，但同样也跟数学紧密结合，而且最重要的是让我熟悉了一个实际的NLP预测流程到底有哪些步骤。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>Wilson
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://www.wilsonovo.com/2020/nlp-week2/" title="Sentiment Analysis Part2">https://www.wilsonovo.com/2020/nlp-week2/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Python/" rel="tag"><i class="fa fa-tag"></i> Python</a>
+              <a href="/tags/NLP/" rel="tag"><i class="fa fa-tag"></i> NLP</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/nlp-week1/" rel="prev" title="NLP Notes Part One">
+      <i class="fa fa-chevron-left"></i> NLP Notes Part One
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/nlp-week3/" rel="next" title="Sentiment Analysis Part3">
+      Sentiment Analysis Part3 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wilson</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments('#gitalk-container', () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '9545dba34400e6a9a4f2',
+      clientSecret: 'c605301f8dfe1864e632afc7529eec5eada3cc8b',
+      repo        : 'blog-comment',
+      owner       : 'wilsongibbs',
+      admin       : ['wilsongibbs'],
+      id          : '53ee76eff7b6602dbd75558f8522d55e',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>

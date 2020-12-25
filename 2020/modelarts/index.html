@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.0.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+<link rel="stylesheet" href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&display=swap&subset=latin,latin-ext">
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  
+  <link rel="stylesheet" href="/lib/animate-css/animate.min.css">
+
+<script class="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.wilsonovo.com","root":"/","scheme":"Gemini","version":"8.0.0-rc.4","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":true,"bookmark":{"enable":true,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"path":"search.xml","localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":true,"preload":false}};
+  </script>
+
+  <meta property="og:type" content="article">
+<meta property="og:title" content="体验Modelarts实现花卉种类自动识别">
+<meta property="og:url" content="https://www.wilsonovo.com/2020/modelarts/">
+<meta property="og:site_name" content="Wilson&#39;s Blog">
+<meta property="og:locale">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/img1.jpg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.03.17.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.07.19.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.09.57.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.14.54.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.19.17.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.21.30.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.31.36.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.35.06.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.35.57.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.36.14.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.38.30.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/pic2020-08-12-10.37.28.jpeg">
+<meta property="og:image" content="https://www.wilsonovo.com/2020/modelarts/img2.jpg">
+<meta property="article:published_time" content="2020-08-13T10:07:17.000Z">
+<meta property="article:modified_time" content="2020-08-14T14:29:26.343Z">
+<meta property="article:author" content="Wilson">
+<meta property="article:tag" content="AI">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.wilsonovo.com/2020/modelarts/img1.jpg">
+
+<link rel="canonical" href="https://www.wilsonovo.com/2020/modelarts/">
+
+
+<script class="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'default'
+  };
+</script>
+
+  <title>体验Modelarts实现花卉种类自动识别 | Wilson's Blog</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .menu-item,
+  .use-motion .sidebar,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header {
+    visibility: visible;
+  }
+
+  .use-motion .header,
+  .use-motion .site-brand-container .toggle,
+  .use-motion .footer { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle,
+  .use-motion .custom-logo-image {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <h1 class="site-title">Wilson's Blog</h1>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Never stop</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>Home</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>About</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>Tags<span class="badge">5</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>Categories<span class="badge">2</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>Archives<span class="badge">11</span></a>
+
+  </li>
+        <li class="menu-item menu-item-schedule">
+
+    <a href="/schedule/" rel="section"><i class="fa fa-calendar fa-fw"></i>Schedule</a>
+
+  </li>
+        <li class="menu-item menu-item-gallery">
+
+    <a href="https://www.nsrain.com/" rel="noopener" target="_blank"><i class="fa fa-photo-video fa-fw"></i>Gallery</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>Search
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off" maxlength="80"
+           placeholder="Searching..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+    <span class="toggle-line"></span>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <section class="post-toc-wrap sidebar-panel">
+          <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%8D%8E%E4%B8%BA%E4%BA%91%E7%AB%AF%E5%AE%9E%E9%AA%8C%E5%AE%A4"><span class="nav-number">1.</span> <span class="nav-text">华为云端实验室</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E5%BC%80%E5%A7%8B%E7%8E%A9%E8%80%8D"><span class="nav-number">2.</span> <span class="nav-text">开始玩耍</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AF%86%E5%88%AB%E8%8A%B1%E5%8D%89"><span class="nav-number">3.</span> <span class="nav-text">识别花卉</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%8E%A9%E5%A4%9F%E4%BA%86"><span class="nav-number">4.</span> <span class="nav-text">玩够了</span></a></li></ol></div>
+      </section>
+      <!--/noindex-->
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Wilson"
+      src="/images/avatar.png">
+  <p class="site-author-name" itemprop="name">Wilson</p>
+  <div class="site-description" itemprop="description">Software developer, undergraduate, CS major.</div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">5</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wilsongibbs" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wilsongibbs" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://twitter.com/WilsongibbsZ" title="Twitter → https:&#x2F;&#x2F;twitter.com&#x2F;WilsongibbsZ" rel="noopener" target="_blank"><i class="fab fa-twitter fa-fw"></i>Twitter</a>
+      </span>
+  </div>
+
+
+
+      </section>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+  <a role="button" class="book-mark-link book-mark-link-fixed"></a>
+
+<noscript>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="default">
+    <link itemprop="mainEntityOfPage" href="https://www.wilsonovo.com/2020/modelarts/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.png">
+      <meta itemprop="name" content="Wilson">
+      <meta itemprop="description" content="Software developer, undergraduate, CS major.">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Wilson's Blog">
+    </span>
+
+    
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          体验Modelarts实现花卉种类自动识别
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">Posted on</span>
+
+              <time title="Created: 2020-08-13 18:07:17" itemprop="dateCreated datePublished" datetime="2020-08-13T18:07:17+08:00">2020-08-13</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">Edited on</span>
+                <time title="Modified: 2020-08-14 22:29:26" itemprop="dateModified" datetime="2020-08-14T22:29:26+08:00">2020-08-14</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/coding/" itemprop="url" rel="index"><span itemprop="name">coding</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+        <p><img src="/2020/modelarts/img1.jpg" alt="img1"></p>
+<a id="more"></a>
+
+<p>最近报名了一个绿盟竞赛，现在已经开始第一阶段的赋能赛了。要求是通过华为云的微认证，项目四选一… 看了一下觉得这个花卉识别的还蛮有意思，就进去做了一下。开始傻不拉几的用自己的账号部署OBS，突然发现不对劲，咋还要我付钱呢。一看原来是在实验室里用指定账号做… 这操作也行吧。</p>
+<h6 id><a href="#" class="headerlink" title></a></h6><h1 id="华为云端实验室"><a href="#华为云端实验室" class="headerlink" title="华为云端实验室"></a>华为云端实验室</h1><p>这玩意还是蛮新奇的，貌似搞了个linux虚拟机限时实验，用IAM做了个实验账户给我登陆。</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.03.17.jpeg" alt="pic2020-08-12-10.03.17"></p>
+<p>进来可以看到拓扑图和详细步骤，看上去没什么技术含量。行吧那就做呗，不要钱还不玩玩？</p>
+<h6 id="-1"><a href="#-1" class="headerlink" title></a></h6><h1 id="开始玩耍"><a href="#开始玩耍" class="headerlink" title="开始玩耍"></a>开始玩耍</h1><p>进入沙盒，配置一个OBS来存数据，然后创建密钥。因为是linux，还要用终端来取密码……</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.07.19.jpeg" alt="pic2020-08-12-10.07.19"></p>
+<p>设置好以后再配置开发环境，一个Notebook。</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.09.57.jpeg" alt="pic2020-08-12-10.09.57"></p>
+<p>开始还在想花花的数据呢？咋没连接咧。原来直接用命令导入…</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.14.54.jpeg" alt="pic2020-08-12-10.14.54"></p>
+<p>数据进了OBS以后就可以训练模型了。看了一下导入了大概7000多个文件。华为这个整合已经预置了算法，这里选用ResNet_v1_50，设置好以后开始训练。</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.19.17.jpeg" alt="pic2020-08-12-10.19.17"></p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.21.30.jpeg" alt="pic2020-08-12-10.21.30"></p>
+<p>等了一会训练完成，开始部署模型，稍等片刻就可以玩耍了～</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.31.36.jpeg" alt="pic2020-08-12-10.31.36"></p>
+<h6 id="-2"><a href="#-2" class="headerlink" title></a></h6><h1 id="识别花卉"><a href="#识别花卉" class="headerlink" title="识别花卉"></a>识别花卉</h1><p>这比想象中的还简单，华为做的这个ModelArts确实是一站式服务，高度集成。先看看提供的照片识别怎么样。</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.35.06.jpeg" alt="pic2020-08-12-10.35.06"></p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.35.57.jpeg" alt="pic2020-08-12-10.35.57"></p>
+<p>看上去还不错，精度还可以。再去网上找几张试试看。</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.36.14.jpeg" alt="pic2020-08-12-10.36.14"></p>
+<p>额，原来提供的数据总共就标记了四种花，传了个牵牛上去就懵逼了。行吧，既然还有时间，那再玩玩，上传些不是人的东西试试。</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.38.30.jpeg" alt="pic2020-08-12-10.38.30"></p>
+<p>算出来天线宝宝和向日葵最像23333</p>
+<p>最后再来测一个最美的花（逃</p>
+<p><img src="/2020/modelarts/pic2020-08-12-10.37.28.jpeg" alt="pic2020-08-12-10.37.28"></p>
+<h6 id="-3"><a href="#-3" class="headerlink" title></a></h6><h1 id="玩够了"><a href="#玩够了" class="headerlink" title="玩够了"></a>玩够了</h1><p>第一次白嫖体验了一下市面上这些集成”AI”产品，还是蛮好玩的。现在阿里云包装了这么多功能出售，二次开发也是很方便。做完了实验还要考试才能拿到认证…</p>
+<p><img src="/2020/modelarts/img2.jpg" alt="img2"></p>
+<p>赋能赛算是做完了，也就给预赛加个五分，同学貌似也没人玩这个，我一个人报名了两个队，哎。还是期待有什么题目嘿嘿，睡觉。</p>
+
+    </div>
+
+    
+    
+    
+        
+
+<div>
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>Post author:  </strong>Wilson
+  </li>
+  <li class="post-copyright-link">
+    <strong>Post link: </strong>
+    <a href="https://www.wilsonovo.com/2020/modelarts/" title="体验Modelarts实现花卉种类自动识别">https://www.wilsonovo.com/2020/modelarts/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>Copyright Notice:  </strong>All articles in this blog are licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fab fa-fw fa-creative-commons"></i>BY-NC-SA</a> unless stating additionally.
+  </li>
+</ul>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/AI/" rel="tag"><i class="fa fa-tag"></i> AI</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/restart/" rel="prev" title="重启博客">
+      <i class="fa fa-chevron-left"></i> 重启博客
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/nlp-week1/" rel="next" title="NLP Notes Part One">
+      NLP Notes Part One <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+    <div class="comments" id="gitalk-container"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 2019 – 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Wilson</span>
+</div>
+  <div class="powered-by">Powered by <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.js.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a>
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+<script src="/js/bookmark.js"></script>
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.css">
+
+<script>
+NexT.utils.loadComments('#gitalk-container', () => {
+  NexT.utils.getScript('//cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js', () => {
+    var gitalk = new Gitalk({
+      clientID    : '9545dba34400e6a9a4f2',
+      clientSecret: 'c605301f8dfe1864e632afc7529eec5eada3cc8b',
+      repo        : 'blog-comment',
+      owner       : 'wilsongibbs',
+      admin       : ['wilsongibbs'],
+      id          : '97adcde0370d15bcd1f69561ef0b980a',
+        language: '',
+      distractionFreeMode: true
+    });
+    gitalk.render('gitalk-container');
+  }, window.Gitalk);
+});
+</script>
+
+</body>
+</html>
